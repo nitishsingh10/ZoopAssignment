@@ -32,7 +32,7 @@ const VEHICLE_LABELS: Record<string, string> = {
   van: '🚐 Van',
 };
 
-export default function AgentDetail({ agent, fromCache, onClose, onEdit, onDelete }: AgentDetailProps) {
+export default function AgentDetail({ agent, onClose, onEdit, onDelete }: AgentDetailProps) {
   const initials = agent.full_name
     .split(' ')
     .map((n) => n[0])

@@ -37,7 +37,6 @@ export default function Home() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [stats, setStats] = useState<StatsResponse['stats'] | null>(null);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, pages: 0 });
-  const [fromCache, setFromCache] = useState(false);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -62,7 +61,6 @@ export default function Home() {
       });
       setAgents(res.agents);
       setPagination(res.pagination);
-      setFromCache(res.fromCache);
     } catch {
       addToast('error', 'Failed to load agents');
     } finally {
@@ -80,7 +78,7 @@ export default function Home() {
     }
   }, []);
 
-  useEffect(() => { fetchAgents(); fetchStats(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchAgents(); fetchStats(); }, []); // eslint-disable-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
 
   // ── Search debounce ───────────────────────────────────────────────────────────
   const handleSearchChange = (val: string) => {
