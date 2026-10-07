@@ -47,7 +47,7 @@ export default function AgentDetail({ agent, fromCache, onClose, onEdit, onDelet
           <div className="modal-subtitle" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span>ID: </span>
             <code style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace' }}>{agent.id}</code>
-            {fromCache && <span className="cache-pill">⚡ Cached</span>}
+
           </div>
         </div>
         <button className="close-btn" onClick={onClose}>

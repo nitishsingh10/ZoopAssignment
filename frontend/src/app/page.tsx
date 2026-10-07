@@ -236,9 +236,7 @@ export default function Home() {
             <p>Manage your fleet of delivery partners</p>
           </div>
           <div className="topbar-right">
-            {fromCache && (
-              <span className="cache-pill">⚡ Cached</span>
-            )}
+
             <button className="btn btn-ghost btn-sm" onClick={() => { fetchAgents(); fetchStats(); }} title="Refresh">
               <RefreshCw size={14} />
             </button>
