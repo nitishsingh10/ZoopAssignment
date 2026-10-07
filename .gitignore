@@ -1,3 +1,7 @@
+# Local-only documentation (not for repo)
+user_flow.md
+backend_docs.md
+
 # Dependencies
 node_modules/
 
