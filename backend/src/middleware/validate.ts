@@ -1,22 +1,28 @@
-const { body, param, query, validationResult } = require('express-validator');
+import { body, param, query, validationResult } from 'express-validator';
+import type { Request, Response, NextFunction } from 'express';
 
-const handleValidationErrors = (req, res, next) => {
+export const handleValidationErrors = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(422).json({
+    res.status(422).json({
       success: false,
       message: 'Validation failed',
-      errors: errors.array().map((e) => ({ field: e.path, message: e.msg })),
+      errors: errors.array().map((e) => ({ field: e.type === 'field' ? e.path : e.type, message: e.msg })),
     });
+    return;
   }
   next();
 };
 
-const createAgentRules = [
+export const createAgentRules = [
   body('full_name')
     .trim()
     .notEmpty().withMessage('Full name is required')
-    .isLength({ min: 2, max: 100 }).withMessage('Full name must be 2-100 characters'),
+    .isLength({ min: 2, max: 100 }).withMessage('Full name must be 2–100 characters'),
 
   body('phone')
     .trim()
@@ -32,7 +38,7 @@ const createAgentRules = [
   body('service_area')
     .trim()
     .notEmpty().withMessage('Service area is required')
-    .isLength({ min: 2, max: 100 }).withMessage('Service area must be 2-100 characters'),
+    .isLength({ min: 2, max: 100 }).withMessage('Service area must be 2–100 characters'),
 
   body('status')
     .optional()
@@ -57,29 +63,25 @@ const createAgentRules = [
   handleValidationErrors,
 ];
 
-const updateAgentRules = [
+export const updateAgentRules = [
   param('id').isUUID().withMessage('Invalid agent ID format'),
 
   body('full_name')
-    .optional()
-    .trim()
-    .isLength({ min: 2, max: 100 }).withMessage('Full name must be 2-100 characters'),
+    .optional().trim()
+    .isLength({ min: 2, max: 100 }).withMessage('Full name must be 2–100 characters'),
 
   body('phone')
-    .optional()
-    .trim()
+    .optional().trim()
     .matches(/^[+]?[\d\s\-().]{7,20}$/).withMessage('Invalid phone number format'),
 
   body('email')
-    .optional()
-    .trim()
+    .optional().trim()
     .isEmail().withMessage('Invalid email address')
     .normalizeEmail(),
 
   body('service_area')
-    .optional()
-    .trim()
-    .isLength({ min: 2, max: 100 }).withMessage('Service area must be 2-100 characters'),
+    .optional().trim()
+    .isLength({ min: 2, max: 100 }).withMessage('Service area must be 2–100 characters'),
 
   body('status')
     .optional()
@@ -104,21 +106,20 @@ const updateAgentRules = [
   handleValidationErrors,
 ];
 
-const agentIdRule = [
+export const agentIdRule = [
   param('id').isUUID().withMessage('Invalid agent ID format'),
   handleValidationErrors,
 ];
 
-const listQueryRules = [
-  query('status').optional().isIn(['active', 'inactive', 'on_leave']).withMessage('Invalid status filter'),
-  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
-  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be 1-100'),
+export const listQueryRules = [
+  query('status')
+    .optional()
+    .isIn(['active', 'inactive', 'on_leave']).withMessage('Invalid status filter'),
+  query('page')
+    .optional()
+    .isInt({ min: 1 }).withMessage('Page must be a positive integer'),
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 100 }).withMessage('Limit must be 1–100'),
   handleValidationErrors,
 ];
-
-module.exports = {
-  createAgentRules,
-  updateAgentRules,
-  agentIdRule,
-  listQueryRules,
-};
