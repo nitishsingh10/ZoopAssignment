@@ -1,24 +1,47 @@
 import 'dotenv/config';
 import Redis, { type RedisOptions } from 'ioredis';
 
-const redisConfig: RedisOptions = {
-  host: process.env.REDIS_HOST ?? 'localhost',
-  port: parseInt(process.env.REDIS_PORT ?? '6379'),
-  lazyConnect: true,
-  retryStrategy: (times: number): number | null => {
-    if (times > 3) {
-      console.warn('Redis connection failed after 3 retries. Proceeding without cache.');
-      return null;
-    }
-    return Math.min(times * 200, 2000);
-  },
-};
+// Upstash provides a single REDIS_URL (rediss://...) with TLS.
+// Falls back to individual env vars for local development.
+function createRedisClient(): Redis {
+  if (process.env.REDIS_URL) {
+    // Upstash / any TLS Redis URL (rediss:// scheme)
+    return new Redis(process.env.REDIS_URL, {
+      tls: process.env.REDIS_URL.startsWith('rediss://') ? {} : undefined,
+      maxRetriesPerRequest: 3,
+      lazyConnect: true,
+      retryStrategy: (times: number): number | null => {
+        if (times > 3) {
+          console.warn('Redis connection failed after 3 retries. Proceeding without cache.');
+          return null;
+        }
+        return Math.min(times * 200, 2000);
+      },
+    });
+  }
 
-if (process.env.REDIS_PASSWORD) {
-  redisConfig.password = process.env.REDIS_PASSWORD;
+  // Local Redis
+  const config: RedisOptions = {
+    host: process.env.REDIS_HOST ?? 'localhost',
+    port: parseInt(process.env.REDIS_PORT ?? '6379'),
+    lazyConnect: true,
+    retryStrategy: (times: number): number | null => {
+      if (times > 3) {
+        console.warn('Redis connection failed after 3 retries. Proceeding without cache.');
+        return null;
+      }
+      return Math.min(times * 200, 2000);
+    },
+  };
+
+  if (process.env.REDIS_PASSWORD) {
+    config.password = process.env.REDIS_PASSWORD;
+  }
+
+  return new Redis(config);
 }
 
-const redis = new Redis(redisConfig);
+const redis = createRedisClient();
 
 redis.on('connect', () => console.log('✅ Redis connected'));
 redis.on('error', (err: Error) => console.warn('⚠️  Redis error:', err.message));

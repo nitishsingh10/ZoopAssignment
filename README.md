@@ -1,24 +1,25 @@
 # ZoopFleet – Delivery Agent Management
 
-A full-stack web application for managing delivery agents. Built with **Node.js + Express** (backend), **Next.js** (frontend), **PostgreSQL** (database), and **Redis** (caching).
+A full-stack web application for managing delivery agents. Built with **Node.js + Express + TypeScript** (backend), **Next.js** (frontend), **Neon DB / PostgreSQL** (database), and **Upstash Redis** (caching).
 
 ---
 
 ## Tech Stack
 
-| Layer      | Technology          | Reason                                                        |
-|------------|---------------------|---------------------------------------------------------------|
-| Backend    | Node.js + Express   | Lightweight, fast, great ecosystem for REST APIs              |
-| Frontend   | Next.js (App Router) | React-based, SSR-capable, TypeScript support                 |
-| Database   | **PostgreSQL**      | Relational, ACID-compliant, UUID support, great for structured records |
-| Cache      | Redis (ioredis)     | In-memory, sub-millisecond reads, TTL-based invalidation      |
+| Layer    | Technology              | Reason                                                              |
+|----------|-------------------------|---------------------------------------------------------------------|
+| Backend  | Node.js + Express + TS  | Lightweight, fast, type-safe REST API                               |
+| Frontend | Next.js (App Router)    | React-based, SSR-capable, TypeScript support                        |
+| Database | **Neon DB** (PostgreSQL) | Serverless Postgres, free tier, branching, auto-scaling            |
+| Cache    | **Upstash Redis**       | Serverless Redis, free tier (10k cmd/day), TLS, HTTP-based         |
 
-### Why PostgreSQL?
-PostgreSQL was chosen over MongoDB or SQLite because:
+### Why PostgreSQL / Neon DB?
 - Agent records are structured and relational
 - ACID compliance ensures data consistency on updates/deletes
 - UUID primary keys work natively with the `uuid-ossp` extension
 - Excellent support for indexing on `status`, `service_area`, and `email`
+- **Neon** adds zero-infrastructure serverless Postgres with connection pooling built in
+
 
 ---
 
@@ -262,3 +263,110 @@ ZoopAssignment/
     ├── .env.example
     └── package.json
 ```
+
+---
+
+## Production Deployment
+
+### Services Used
+
+| Service | Purpose | Free Tier |
+|---------|---------|-----------|
+| [Neon DB](https://neon.tech) | PostgreSQL database | 0.5 GB storage, 1 project |
+| [Upstash](https://upstash.com) | Redis cache | 10,000 commands/day |
+| [Render](https://render.com) | Backend hosting | 750 hrs/month |
+| [Vercel](https://vercel.com) | Frontend hosting | Unlimited on hobby plan |
+
+---
+
+### Step 1 – Set Up Neon DB
+
+1. Go to [neon.tech](https://neon.tech) → **Sign up / Log in**
+2. Click **New Project** → name it `zoop-agents` → choose a region
+3. Once created, go to **Dashboard → Connection Details**
+4. Copy the **Connection string** (looks like `postgresql://user:pass@ep-xxx.neon.tech/neondb?sslmode=require`)
+5. Save it — you'll paste it as `DATABASE_URL` in Render
+
+> **Run migration against Neon:**
+> ```bash
+> cd backend
+> DATABASE_URL="postgresql://..." npm run migrate
+> ```
+
+---
+
+### Step 2 – Set Up Upstash Redis
+
+1. Go to [console.upstash.com](https://console.upstash.com) → **Sign up / Log in**
+2. Click **Create Database** → name it `zoop-cache` → choose the same region as Neon → **TLS enabled**
+3. Once created, go to **Details** tab
+4. Copy the **REDIS_URL** (starts with `rediss://`)
+5. Save it — you'll paste it as `REDIS_URL` in Render and Vercel (not needed for frontend but good to have)
+
+---
+
+### Step 3 – Deploy Backend on Render
+
+1. Go to [render.com](https://render.com) → **Sign up / Log in with GitHub**
+2. Click **New → Web Service**
+3. Connect your GitHub repo: `nitishsingh10/ZoopAssignment`
+4. Set these fields:
+   - **Root Directory:** `backend`
+   - **Build Command:** `npm install && npm run build`
+   - **Start Command:** `npm start`
+   - **Region:** Singapore (or closest to your Neon region)
+5. Under **Environment Variables**, add:
+
+   | Key | Value |
+   |-----|-------|
+   | `NODE_ENV` | `production` |
+   | `DATABASE_URL` | *(paste Neon connection string)* |
+   | `REDIS_URL` | *(paste Upstash REDIS_URL)* |
+   | `FRONTEND_URL` | *(your Vercel URL — add after Step 4)* |
+   | `CACHE_TTL` | `300` |
+
+6. Click **Create Web Service**
+7. Wait for the build to finish (~2 min)
+8. Note your backend URL: `https://zoop-backend-xxxx.onrender.com`
+
+> **Verify:** Open `https://your-render-url.onrender.com/health` → should return `{ "status": "ok" }`
+
+---
+
+### Step 4 – Deploy Frontend on Vercel
+
+1. Go to [vercel.com](https://vercel.com) → **Sign up / Log in with GitHub**
+2. Click **New Project** → Import `nitishsingh10/ZoopAssignment`
+3. Set **Root Directory** to `frontend`
+4. Under **Environment Variables**, add:
+
+   | Key | Value |
+   |-----|-------|
+   | `NEXT_PUBLIC_API_URL` | `https://your-render-url.onrender.com` |
+
+5. Click **Deploy**
+6. Note your frontend URL: `https://zoop-assignment-xxxx.vercel.app`
+
+---
+
+### Step 5 – Wire CORS
+
+Go back to your **Render dashboard → Environment Variables** and update:
+
+| Key | Value |
+|-----|-------|
+| `FRONTEND_URL` | `https://zoop-assignment-xxxx.vercel.app` |
+
+Click **Save** → Render will automatically redeploy.
+
+---
+
+### Deployment Checklist
+
+- [ ] Neon DB created and migration run (`npm run migrate` with `DATABASE_URL` set)
+- [ ] Upstash Redis database created and URL copied
+- [ ] Render web service deployed with all env vars
+- [ ] `GET /health` returns `{ "status": "ok" }` on Render URL
+- [ ] Vercel project deployed with `NEXT_PUBLIC_API_URL` pointing to Render
+- [ ] `FRONTEND_URL` updated on Render to the Vercel URL
+- [ ] Full CRUD working end-to-end on production URLs
