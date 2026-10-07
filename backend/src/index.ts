@@ -33,6 +33,10 @@ app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', service: 'zoop-backend', timestamp: new Date().toISOString() });
 });
 
+app.get('/', (_req: Request, res: Response) => {
+  res.json({ status: 'ok', service: 'zoop-backend', timestamp: new Date().toISOString(), message: 'Welcome to Zoop Backend' });
+});
+
 app.use('/api/agents', agentRoutes);
 
 // ─── 404 ──────────────────────────────────────────────────────────────────────
